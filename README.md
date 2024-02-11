@@ -1,6 +1,6 @@
 # BetterCrosshairs
 
-BetterCrosshairs is a simple Windows program written in C++ that creates a customizable crosshair overlay on your screen. This can be useful for gamers or anyone who wants a more visible crosshair while using applications or playing games.
+BetterCrosshairs is a light-weight Windows program written in C++ that creates a customizable crosshair overlay on your screen. This can be useful for gamers or anyone who wants a more visible crosshair while using applications or playing games. It is made for games like Fortnite and Apex Legends but would work for most other games.
 
 ## Features
 
