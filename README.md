@@ -9,6 +9,8 @@ BetterCrosshairs is a simple Windows program written in C++ that creates a custo
 - Always-on-top functionality to keep the crosshair visible.
 - Color customization for the crosshair.
 
+![preview](https://i.imgur.com/s04g6XR.png)
+
 ## Getting Started
 
 1. Clone the repository or download the source code.
