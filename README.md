@@ -27,9 +27,8 @@ BetterCrosshairs is a light-weight Windows program written in C++ that creates a
 
 The following variables in the source code can be adjusted to customize the crosshair:
 
-- `crosshairLength`: Adjust the length of the crosshair lines.
-- `crosshairWidth`: Adjust the width of the crosshair lines.
-- `crosshairRotation`: Adjust the rotation angle of the crosshair lines.
+- `crosshair`: Adjust the length of the crosshair lines.
+- `crosshair`: Adjust the width of the crosshair lines.
 - `RGB(255, 17, 10)`: Adjust the RGB values to change the color of the crosshair.
 
 ## Dependencies
