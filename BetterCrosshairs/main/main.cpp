@@ -1,6 +1,39 @@
 #include <iostream>
 #include <Windows.h>
+#include <fstream>
+#include <string> 
+#include <locale>
+#include <codecvt>
+#include "../json.hpp"
 
+std::string ws2s(const std::wstring& ws) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    return converter.to_bytes(ws);
+}
+using json = nlohmann::json;
+
+const json defaultConfig = {
+    {"color", {{"red", 255}, {"green", 10}, {"blue", 17}}},
+    {"crosshair", {{"length", 2}, {"width", 2}}}
+};
+
+json readConfigFile(const std::string& filename) {
+    std::ifstream configFile(filename);
+    if (!configFile.is_open()) {
+        std::ofstream defaultConfigFile(filename);
+        defaultConfigFile << std::setw(4) << defaultConfig << std::endl;
+        defaultConfigFile.close();
+
+        configFile.open(filename);
+        if (!configFile.is_open()) {
+            throw std::runtime_error("Failed to open default config file: " + filename);
+        }
+    }
+
+    json config;
+    configFile >> config;
+    return config;
+}
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_DESTROY:
@@ -13,16 +46,27 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    // make a variable that will be the length of the crosshair
-    int crosshairLength = 1;
-    int crosshairWidth = 2;
+    WCHAR exePath[MAX_PATH];
+    GetModuleFileName(NULL, exePath, MAX_PATH);
+    std::wstring wstr(exePath);
 
+    std::wstring exeDirectory(wstr.begin(), wstr.end());
 
+    size_t lastSlashIndex = exeDirectory.find_last_of(L"\\/");
+    std::wstring exeDirectorySubstring = exeDirectory.substr(0, lastSlashIndex);
+    std::wstring configFilePath = exeDirectorySubstring + L"\\config.json";
 
-    // determine the size of the window, it should be exactly as long as the crosshair
+    json config = readConfigFile(ws2s(configFilePath));
+
+    int red = config["color"]["red"];
+    int green = config["color"]["green"];
+    int blue = config["color"]["blue"];
+
+    int crosshairLength = config["crosshair"]["length"];
+    int crosshairWidth = config["crosshair"]["width"];
+
     int windowSize = crosshairLength * 10;
 
-    // Register the window class
     const wchar_t CLASS_NAME[] = L"CrossWindowClass";
 
     WNDCLASS wc = { 0 };
@@ -31,13 +75,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.lpszClassName = CLASS_NAME;
     RegisterClass(&wc);
 
-    // Calculate window position to center it
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
     int windowX = (screenWidth - windowSize) / 2;
     int windowY = (screenHeight - windowSize) / 2;
 
-    // Create the window without decorations
     HWND hwnd = CreateWindowEx(
         WS_EX_LAYERED | WS_EX_TOPMOST, // Extended window style for layered and topmost
         CLASS_NAME,                     // Window class
@@ -54,25 +96,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 0;
     }
 
-    // Make the window always on top
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
     SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 0, LWA_COLORKEY);
 
-    // Show the window
     ShowWindow(hwnd, SW_SHOWNORMAL);
 
-    // Retrieve a handle to the device context for the window
     HDC hdc = GetDC(hwnd);
 
-    // Set the pen color and make the line thicker (red in this case, width 4 pixels)
-    HPEN hPen = CreatePen(PS_SOLID, crosshairWidth, RGB(255, 17, 10));
+    HPEN hPen = CreatePen(PS_SOLID, crosshairWidth, RGB(red, green, blue));
     SelectObject(hdc, hPen);
 
-    // Run the game loop until the 'Esc' key is pressed
     MSG msg = {};
     while (true) {
-        // Process messages
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT || (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE))
                 break;
@@ -80,33 +116,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             DispatchMessage(&msg);
         }
 
-        // Clear the window with a white background
         RECT rect;
         GetClientRect(hwnd, &rect);
         int width = rect.right - rect.left;
         int height = rect.bottom - rect.top;
         FillRect(hdc, &rect, (HBRUSH)(COLOR_WINDOW + 1));
 
-        // Calculate the middle of the window
         int middleX = width / 2;
         int middleY = height / 2;
 
-        // Draw a horizontal line (cross) in the middle of the window
         MoveToEx(hdc, middleX - crosshairLength * 5, middleY, NULL);
         LineTo(hdc, middleX + crosshairLength * 5, middleY);
 
-        // Draw a vertical line (cross) in the middle of the window
         MoveToEx(hdc, middleX, middleY - crosshairLength * 5, NULL);
         LineTo(hdc, middleX, middleY + crosshairLength * 5);
 
-        // Swap buffers to update the window
         SwapBuffers(hdc);
 
-        // Sleep for a short duration to control the frame rate
         Sleep(10);
     }
 
-    // Release resources
     DeleteObject(hPen);
     ReleaseDC(hwnd, hdc);
 
